@@ -1,0 +1,7 @@
+{
+  "type": "module",
+  "dependencies": {
+    "mongodb": "^7.0.0",
+    "axios": "^1.13.2"
+  }
+}
