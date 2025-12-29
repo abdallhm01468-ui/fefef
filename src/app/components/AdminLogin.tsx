@@ -10,7 +10,8 @@ export function AdminLogin({ onLogin, onBack }: AdminLoginProps) {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
 
-  const ADMIN_PASSWORD = 'admin123';
+  // Admin password should be set via environment variable
+  const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD || 'admin123';
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

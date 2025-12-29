@@ -18,6 +18,7 @@ export function Navbar({ currentPage, onNavigate, onLogout }: NavbarProps) {
     { name: 'الملخصات', nameEn: 'Summaries', page: 'summaries' as Page },
     { name: 'الفيديوهات', nameEn: 'Videos', page: 'videos' as Page },
     { name: 'اللايفات', nameEn: 'Live', page: 'lives' as Page },
+    { name: 'AI Chat', nameEn: 'AI Chat', page: 'chat' as Page },
   ];
 
   const isAdmin = currentPage === 'admin';

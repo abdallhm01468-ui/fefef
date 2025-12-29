@@ -1,7 +1,25 @@
+// ⚠️ DEPRECATED: Supabase no longer used in this project
+// =========================================================
+// All data operations are now handled through MongoDB backend API:
+// - POST /api/summaries
+// - POST /api/videos  
+// - POST /api/lives
+// - POST /api/exams
+//
+// This file is kept only for backwards compatibility
+// Do NOT use this in new code
+// =========================================================
+
 import { createClient } from '@supabase/supabase-js'
 
-const projectId = "fambaooexrffkkljsnsu"
-const publicAnonKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZhbWJhb29leHJmZmtrbGpzbnN1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY5OTc2MTAsImV4cCI6MjA4MjU3MzYxMH0.GcdhRcqYmDZvY41BIu8cg_74c8J8Zqgt5zCzpfUBWck"
+// Disabled - use MongoDB backend instead
+// const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID || ""
+// const publicAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || ""
+
+const projectId = ""
+const publicAnonKey = ""
+
+console.warn('⚠️ Supabase client is disabled. Using MongoDB backend API instead.')
 
 const supabaseUrl = `https://${projectId}.supabase.co`
 

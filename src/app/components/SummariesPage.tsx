@@ -2,14 +2,13 @@ import { useState, useEffect } from 'react';
 import { ArrowLeft, FileText, Download, Eye, Filter, Search, Star, Clock, User } from 'lucide-react';
 import { ALL_SUBJECTS, type Subject } from '../utils/categories';
 import { Toast } from './Toast';
-import { summariesAPI } from '../../utils/supabaseClient';
+import { summariesAPI } from '../../utils/mongodbClient';
 
 interface Summary {
   id: string;
   title: string;
   titleAr: string;
   description: string;
-  descriptionAr: string;
   fileUrl: string;
   subjectCode: string;
   uploadDate: string;
@@ -54,7 +53,6 @@ export function SummariesPage({ onBack }: SummariesPageProps) {
 
   const saveSummaries = (newSummaries: Summary[]) => {
     setSummaries(newSummaries);
-    localStorage.setItem('summaries', JSON.stringify(newSummaries));
   };
 
   const handleDownload = async (summary: Summary) => {
@@ -226,7 +224,7 @@ export function SummariesPage({ onBack }: SummariesPageProps) {
               {/* Content */}
               <h3 className="text-lg md:text-xl font-bold text-white mb-2 line-clamp-2">{summary.titleAr}</h3>
               <p className="text-xs md:text-sm text-blue-300 mb-2">{summary.title}</p>
-              <p className="text-sm md:text-base text-blue-100/80 mb-4 line-clamp-2">{summary.descriptionAr}</p>
+              <p className="text-sm md:text-base text-blue-100/80 mb-4 line-clamp-2">{summary.description}</p>
 
               {/* Stats */}
               <div className="flex items-center justify-between text-blue-200/70 text-xs md:text-sm mb-4 pb-4 border-b border-blue-400/20">

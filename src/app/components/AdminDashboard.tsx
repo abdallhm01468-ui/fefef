@@ -4,7 +4,7 @@ import type { ExamTemplate } from '../api/exam';
 import { getCategories, saveCategories, type Category } from '../utils/categories';
 import { FormModal, Notification } from './FormModal';
 import { QuestionFormModal } from './QuestionFormModal';
-import { videosAPI, summariesAPI, livesAPI } from '../../utils/supabaseClient';
+import { videosAPI, summariesAPI, livesAPI } from '../../utils/mongodbClient';
 
 interface AdminDashboardProps {
   onBack: () => void;
@@ -18,7 +18,6 @@ interface Summary {
   title: string;
   titleAr: string;
   description: string;
-  descriptionAr: string;
   fileUrl: string;
   subjectCode: string;
   uploadDate: string;
@@ -30,7 +29,6 @@ interface VideoItem {
   title: string;
   titleAr: string;
   description: string;
-  descriptionAr: string;
   videoUrl: string;
   thumbnail: string;
   category: string;
@@ -45,7 +43,6 @@ interface LiveSession {
   title: string;
   titleAr: string;
   description: string;
-  descriptionAr: string;
   instructor: string;
   instructorAr: string;
   date: string;
@@ -133,7 +130,6 @@ export function AdminDashboard({ onBack }: AdminDashboardProps) {
       title: data.title,
       titleAr: data.titleAr,
       description: data.description,
-      descriptionAr: data.descriptionAr,
       fileUrl: data.fileUrl,
       subjectCode: data.subjectCode,
       uploadDate: new Date().toISOString(),
@@ -142,7 +138,7 @@ export function AdminDashboard({ onBack }: AdminDashboardProps) {
     
     setIsLoading(true);
     try {
-      // Save to Supabase first
+      // Save to MongoDB
       const { error } = await summariesAPI.create(newSummary);
       if (error) {
         console.error('Error adding summary to database:', error);
@@ -155,7 +151,6 @@ export function AdminDashboard({ onBack }: AdminDashboardProps) {
       // Then update local state
       const updated = [...summaries, newSummary];
       setSummaries(updated);
-      localStorage.setItem('summaries', JSON.stringify(updated));
       
       setShowSummaryModal(false);
       showNotif('success', 'تم إضافة الملخص بنجاح! / Summary added successfully!');
@@ -169,18 +164,19 @@ export function AdminDashboard({ onBack }: AdminDashboardProps) {
 
   const handleDeleteSummary = async (id: string) => {
     if (confirm('حذف هذا الملخص؟ / Delete this summary?')) {
-      const updated = summaries.filter(s => s.id !== id);
-      setSummaries(updated);
-      localStorage.setItem('summaries', JSON.stringify(updated));
-      
-      // Delete from Supabase
       try {
+        // Delete from MongoDB first
         await summariesAPI.delete(id);
+        
+        // Then update local state
+        const updated = summaries.filter(s => s.id !== id);
+        setSummaries(updated);
+        
+        showNotif('success', 'تم الحذف بنجاح!');
       } catch (error) {
         console.error('Error deleting summary:', error);
+        showNotif('error', 'خطأ في الحذف!');
       }
-      
-      showNotif('success', 'تم الحذف بنجاح!');
     }
   };
 
@@ -193,16 +189,15 @@ export function AdminDashboard({ onBack }: AdminDashboardProps) {
     if (confirm('حذف هذا الفيديو؟')) {
       const updated = videos.filter(v => v.id !== id);
       setVideos(updated);
-      localStorage.setItem('videos', JSON.stringify(updated));
       
-      // Delete from Supabase
+      // Delete from MongoDB
       try {
         await videosAPI.delete(id);
+        showNotif('success', 'تم الحذف بنجاح!');
       } catch (error) {
         console.error('Error deleting video:', error);
+        showNotif('error', 'خطأ في الحذف!');
       }
-      
-      showNotif('success', 'تم الحذف بنجاح!');
     }
   };
 
@@ -212,7 +207,6 @@ export function AdminDashboard({ onBack }: AdminDashboardProps) {
       title: data.title,
       titleAr: data.titleAr,
       description: data.description,
-      descriptionAr: data.descriptionAr,
       instructor: data.instructor,
       instructorAr: data.instructorAr,
       date: data.date,
@@ -227,7 +221,7 @@ export function AdminDashboard({ onBack }: AdminDashboardProps) {
     
     setIsLoading(true);
     try {
-      // Save to Supabase first
+      // Save to MongoDB first
       const { error } = await livesAPI.create(newLive);
       if (error) {
         console.error('Error adding live session to database:', error);
@@ -239,7 +233,6 @@ export function AdminDashboard({ onBack }: AdminDashboardProps) {
       // Then update local state
       const updated = [...lives, newLive];
       setLives(updated);
-      localStorage.setItem('liveSessions', JSON.stringify(updated));
       
       setShowLiveModal(false);
       showNotif('success', 'تم إضافة الجلسة بنجاح!');
@@ -255,16 +248,15 @@ export function AdminDashboard({ onBack }: AdminDashboardProps) {
     if (confirm('حذف هذه الجلسة؟')) {
       const updated = lives.filter(l => l.id !== id);
       setLives(updated);
-      localStorage.setItem('liveSessions', JSON.stringify(updated));
       
-      // Delete from Supabase
+      // Delete from MongoDB
       try {
         await livesAPI.delete(id);
+        showNotif('success', 'تم الحذف بنجاح!');
       } catch (error) {
         console.error('Error deleting live session:', error);
+        showNotif('error', 'خطأ في الحذف!');
       }
-      
-      showNotif('success', 'تم الحذف بنجاح!');
     }
   };
 
@@ -648,21 +640,86 @@ export function AdminDashboard({ onBack }: AdminDashboardProps) {
       </div>
 
       {/* Modals */}
-      <FormModal
-        isOpen={showSummaryModal}
-        title="إضافة ملخص جديد / Add Summary"
-        fields={[
-          { name: 'title', label: 'English Title', placeholder: 'Title', required: true },
-          { name: 'titleAr', label: 'العنوان بالعربي', placeholder: 'العنوان', required: true },
-          { name: 'subjectCode', label: 'Subject Code', placeholder: 'BADM 100', required: true },
-          { name: 'description', label: 'Description', placeholder: 'Desc', type: 'textarea' },
-          { name: 'descriptionAr', label: 'الوصف بالعربي', placeholder: 'الوصف', type: 'textarea' },
-          { name: 'fileUrl', label: 'File URL', placeholder: 'https://...' },
-        ]}
-        onSubmit={handleAddSummary}
-        onClose={() => setShowSummaryModal(false)}
-        isLoading={isLoading}
-      />
+      {showSummaryModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 max-h-96 overflow-y-auto">
+            <h2 className="text-2xl font-bold mb-4">إضافة ملخص جديد</h2>
+            <form onSubmit={(e) => {
+              e.preventDefault();
+              const formData = new FormData(e.currentTarget);
+              const summaryFile = (formData.get('summaryFile') as File);
+              const title = (formData.get('title') as string || '').trim();
+              const titleAr = (formData.get('titleAr') as string || '').trim();
+              const description = (formData.get('description') as string || '').trim();
+              const subjectCode = (formData.get('subjectCode') as string || '').trim();
+              
+              if (summaryFile && summaryFile.size > 0) {
+                // Convert file to base64
+                const reader = new FileReader();
+                reader.onload = async (event) => {
+                  const finalUrl = event.target?.result as string;
+                  
+                  const newSummary: Summary = {
+                    id: Date.now().toString(),
+                    title: title,
+                    titleAr: titleAr,
+                    description: description,
+                    fileUrl: finalUrl,
+                    subjectCode: subjectCode,
+                    uploadDate: new Date().toISOString(),
+                    downloads: 0,
+                  };
+                  
+                  const updated = [...summaries, newSummary];
+                  setSummaries(updated);
+                  
+                  // Save to MongoDB
+                  try {
+                    await summariesAPI.create(newSummary);
+                    setShowSummaryModal(false);
+                    showNotif('success', 'تم إضافة الملخص بنجاح!');
+                  } catch (error) {
+                    console.error('Error saving summary:', error);
+                    showNotif('error', 'خطأ في حفظ الملخص!');
+                  }
+                };
+                reader.readAsDataURL(summaryFile);
+              } else {
+                showNotif('error', 'الرجاء تحديد ملف!');
+              }
+            }} className="space-y-4">
+              <div>
+                <label className="block font-semibold mb-1">English Title</label>
+                <input name="title" type="text" placeholder="Title" required className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              </div>
+              <div>
+                <label className="block font-semibold mb-1">العنوان بالعربي</label>
+                <input name="titleAr" type="text" placeholder="العنوان" required className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              </div>
+              <div>
+                <label className="block font-semibold mb-1">Subject Code</label>
+                <input name="subjectCode" type="text" placeholder="BADM 100" required className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              </div>
+              <div>
+                <label className="block font-semibold mb-1">Description</label>
+                <textarea name="description" placeholder="الوصف" className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+              </div>
+              <div>
+                <label className="block font-semibold mb-1">رفع الملخص (PDF/Word)</label>
+                <input name="summaryFile" type="file" accept=".pdf,.doc,.docx" className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              </div>
+              <div className="flex gap-2 pt-4">
+                <button type="submit" className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold transition-all">
+                  إضافة
+                </button>
+                <button type="button" onClick={() => setShowSummaryModal(false)} className="flex-1 px-4 py-2 bg-slate-300 hover:bg-slate-400 text-slate-700 rounded-lg font-bold transition-all">
+                  إلغاء
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {showVideoModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
@@ -676,7 +733,6 @@ export function AdminDashboard({ onBack }: AdminDashboardProps) {
               const title = (formData.get('title') as string || '').trim();
               const titleAr = (formData.get('titleAr') as string || '').trim();
               const description = (formData.get('description') as string || '').trim();
-              const descriptionAr = (formData.get('descriptionAr') as string || '').trim();
               const category = (formData.get('category') as string || '').trim();
               const duration = (formData.get('duration') as string || '').trim();
               
@@ -692,7 +748,6 @@ export function AdminDashboard({ onBack }: AdminDashboardProps) {
                     title: title,
                     titleAr: titleAr,
                     description: description,
-                    descriptionAr: descriptionAr,
                     videoUrl: finalUrl,
                     thumbnail: 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22100%22 height=%2256%22%3E%3Crect fill=%22%23333%22 width=%22100%22 height=%2256%22/%3E%3C/svg%3E',
                     category: category,
@@ -704,17 +759,16 @@ export function AdminDashboard({ onBack }: AdminDashboardProps) {
                   
                   const updated = [...videos, newVideo];
                   setVideos(updated);
-                  localStorage.setItem('videos', JSON.stringify(updated));
                   
-                  // Save to Supabase
+                  // Save to MongoDB
                   try {
                     await videosAPI.create(newVideo);
+                    setShowVideoModal(false);
+                    showNotif('success', 'تم إضافة الفيديو بنجاح!');
                   } catch (error) {
                     console.error('Error saving video:', error);
+                    showNotif('error', 'خطأ في حفظ الفيديو!');
                   }
-                  
-                  setShowVideoModal(false);
-                  showNotif('success', 'تم إضافة الفيديو بنجاح!');
                 };
                 reader.readAsDataURL(videoFile);
               } else if (videoUrl) {
@@ -737,7 +791,6 @@ export function AdminDashboard({ onBack }: AdminDashboardProps) {
                   title: title,
                   titleAr: titleAr,
                   description: description,
-                  descriptionAr: descriptionAr,
                   videoUrl: embedUrl,
                   thumbnail: videoUrl.includes('youtube') ? `https://img.youtube.com/vi/${embedUrl.split('/').pop()}/maxresdefault.jpg` : '',
                   category: category,
@@ -749,19 +802,18 @@ export function AdminDashboard({ onBack }: AdminDashboardProps) {
                 
                 const updated = [...videos, newVideo];
                 setVideos(updated);
-                localStorage.setItem('videos', JSON.stringify(updated));
                 
-                // Save to Supabase
+                // Save to MongoDB
                 (async () => {
                   try {
                     await videosAPI.create(newVideo);
+                    setShowVideoModal(false);
+                    showNotif('success', 'تم إضافة الفيديو بنجاح!');
                   } catch (error) {
                     console.error('Error saving video:', error);
+                    showNotif('error', 'خطأ في حفظ الفيديو!');
                   }
                 })();
-                
-                setShowVideoModal(false);
-                showNotif('success', 'تم إضافة الفيديو بنجاح!');
               } else {
                 showNotif('error', 'يجب اختيار ملف فيديو أو إدراج رابط YouTube!');
               }
@@ -785,10 +837,6 @@ export function AdminDashboard({ onBack }: AdminDashboardProps) {
               <div>
                 <label className="block font-semibold mb-1">Description</label>
                 <textarea name="description" placeholder="Desc" className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
-              </div>
-              <div>
-                <label className="block font-semibold mb-1">الوصف بالعربي</label>
-                <textarea name="descriptionAr" placeholder="الوصف" className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
               </div>
               <div>
                 <label className="block font-semibold mb-1">Category</label>
@@ -818,7 +866,6 @@ export function AdminDashboard({ onBack }: AdminDashboardProps) {
           { name: 'title', label: 'English Title', placeholder: 'Title', required: true },
           { name: 'titleAr', label: 'العنوان بالعربي', placeholder: 'العنوان', required: true },
           { name: 'description', label: 'Description', placeholder: 'Desc', type: 'textarea' },
-          { name: 'descriptionAr', label: 'الوصف بالعربي', placeholder: 'الوصف', type: 'textarea' },
           { name: 'instructor', label: 'Instructor', placeholder: 'Name', required: true },
           { name: 'instructorAr', label: 'اسم المحاضر', placeholder: 'الاسم' },
           { name: 'date', label: 'Date (YYYY-MM-DD)', placeholder: '2025-01-15', required: true },

@@ -1,14 +1,13 @@
 import { useState, useEffect } from 'react';
 import { ArrowLeft, Video, Play, Eye } from 'lucide-react';
 import { ALL_SUBJECTS } from '../utils/categories';
-import { videosAPI } from '../../utils/supabaseClient';
+import { videosAPI } from '../../utils/mongodbClient';
 
 interface VideoItem {
   id: string;
   title: string;
   titleAr: string;
   description: string;
-  descriptionAr: string;
   videoUrl: string;
   thumbnail: string;
   subjectCode?: string;
@@ -30,7 +29,7 @@ export function VideosPage({ onBack }: VideosPageProps) {
   const [selectedVideo, setSelectedVideo] = useState<VideoItem | null>(null);
 
   useEffect(() => {
-    // Load videos from Supabase on component mount
+    // Load videos from MongoDB on component mount
     const loadVideos = async () => {
       try {
         const { data, error } = await videosAPI.getAll();
@@ -41,7 +40,7 @@ export function VideosPage({ onBack }: VideosPageProps) {
         } else if (data && data.length > 0) {
           setVideos(data as VideoItem[]);
         } else {
-          // If empty in Supabase, keep it empty - no defaults
+          // If empty in MongoDB, keep it empty - no defaults
           setVideos([]);
         }
       } catch (err) {
@@ -137,7 +136,7 @@ export function VideosPage({ onBack }: VideosPageProps) {
               </div>
               <div className="p-4 md:p-6">
                 <h3 className="text-xl md:text-2xl font-bold text-white mb-2">{selectedVideo.titleAr}</h3>
-                <p className="text-blue-200 mb-4">{selectedVideo.descriptionAr}</p>
+                <p className="text-blue-200 mb-4">{selectedVideo.description}</p>
                 <button
                   onClick={() => setSelectedVideo(null)}
                   className="px-6 py-3 bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-700 hover:to-cyan-600 text-white rounded-lg font-semibold transition-all active:scale-95"
@@ -231,7 +230,7 @@ export function VideosPage({ onBack }: VideosPageProps) {
               <div className="p-4">
                 <h3 className="text-lg font-bold text-white mb-1">{video.titleAr}</h3>
                 <p className="text-sm text-white/70 mb-2">{video.title}</p>
-                <p className="text-xs text-white/60 mb-3 line-clamp-2">{video.descriptionAr}</p>
+                <p className="text-xs text-white/60 mb-3 line-clamp-2">{video.description}</p>
 
                 {/* Stats */}
                 <div className="flex items-center justify-between text-white/60 text-xs">

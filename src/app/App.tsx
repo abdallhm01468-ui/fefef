@@ -11,10 +11,11 @@ import { LiveSessionsPage } from './components/LiveSessionsPage';
 import { Navbar } from './components/Navbar';
 import { Footer } from './components/Footer';
 import ExamViewer from './components/ExamViewer';
+import ChatPage from './components/ChatPage';
 import type { ExamTemplate } from './api/exam';
 import { acct150MCQQuestions, acct150TrueFalseQuestions } from './data/acct150CompleteExam';
 
-export type Page = 'landing' | 'exams' | 'summaries' | 'videos' | 'lives' | 'exam-interface' | 'admin-login' | 'admin' | 'results' | 'exam-viewer';
+export type Page = 'landing' | 'exams' | 'summaries' | 'videos' | 'lives' | 'exam-interface' | 'admin-login' | 'admin' | 'results' | 'exam-viewer' | 'chat';
 
 export interface StudentInfo {
   name: string;
@@ -188,6 +189,9 @@ function App() {
             totalQuestions={totalQuestions}
             onRetakeExam={() => setCurrentPage('exams')}
           />
+        )}
+        {currentPage === 'chat' && (
+          <ChatPage />
         )}
       </div>
 

@@ -2,14 +2,13 @@ import { useState, useEffect } from 'react';
 import { ArrowLeft, Radio, Calendar, Clock, Users, Plus, Trash2, Bell } from 'lucide-react';
 import { Toast } from './Toast';
 import { ConfirmModal } from './ConfirmModal';
-import { livesAPI } from '../../utils/supabaseClient';
+import { livesAPI } from '../../utils/mongodbClient';
 
 interface LiveSession {
   id: string;
   title: string;
   titleAr: string;
   description: string;
-  descriptionAr: string;
   instructor: string;
   instructorAr: string;
   date: string;
@@ -66,7 +65,6 @@ export function LiveSessionsPage({ onBack }: LiveSessionsPageProps) {
         title: 'Financial Accounting Basics',
         titleAr: 'أساسيات المحاسبة المالية',
         description: 'Introduction to financial accounting principles',
-        descriptionAr: 'مقدمة في مبادئ المحاسبة المالية',
         instructor: 'Dr. Ahmed Hassan',
         instructorAr: 'د. أحمد حسن',
         date: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
@@ -83,7 +81,6 @@ export function LiveSessionsPage({ onBack }: LiveSessionsPageProps) {
         title: 'Cost Accounting Workshop',
         titleAr: 'ورشة عمل محاسبة التكاليف',
         description: 'Practical workshop on cost accounting',
-        descriptionAr: 'ورشة عملية في محاسبة التكاليف',
         instructor: 'Prof. Sarah Mohamed',
         instructorAr: 'أ. سارة محمد',
         date: new Date().toISOString().split('T')[0],
@@ -100,7 +97,6 @@ export function LiveSessionsPage({ onBack }: LiveSessionsPageProps) {
         title: 'Tax Accounting Q&A Session',
         titleAr: 'جلسة أسئلة وأجوبة المحاسبة الضريبية',
         description: 'Open Q&A session about tax accounting',
-        descriptionAr: 'جلسة أسئلة وأجوبة مفتوحة عن المحاسبة الضريبية',
         instructor: 'Dr. Khaled Ali',
         instructorAr: 'د. خالد علي',
         date: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
@@ -276,7 +272,7 @@ export function LiveSessionsPage({ onBack }: LiveSessionsPageProps) {
                 {/* Content */}
                 <h3 className="text-xl md:text-2xl font-bold text-white mb-2">{session.titleAr}</h3>
                 <p className="text-sm md:text-base text-white/70 mb-1">{session.title}</p>
-                <p className="text-xs md:text-sm text-white/60 mb-4">{session.descriptionAr}</p>
+                <p className="text-xs md:text-sm text-white/60 mb-4">{session.description}</p>
 
                 {/* Instructor */}
                 <div className="flex items-center gap-3 mb-4 p-3 bg-white/10 rounded-lg">
