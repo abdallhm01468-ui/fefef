@@ -1,6 +1,5 @@
-import { MongoClient, ServerApiVersion } from 'mongodb';
+import clientPromise from './_db.js';
 
-const mongoUri = process.env.MONGODB_URI;
 const dbName = process.env.DB_NAME || 'eduflow';
 
 // Validation functions
@@ -52,29 +51,8 @@ function validateId(id) {
   return { valid: true };
 }
 
-async function connectAndQuery(operation) {
-  const client = new MongoClient(mongoUri, {
-    serverApi: {
-      version: ServerApiVersion.v1,
-      strict: true,
-      deprecationErrors: true,
-    },
-    retryWrites: true,
-    w: "majority",
-  });
-
-  try {
-    await client.connect();
-    const db = client.db(dbName);
-    return await operation(db);
-  } finally {
-    await client.close();
-  }
-}
-
 export default async function handler(req, res) {
-  // Set CORS headers
-  res.setHeader('Access-Control-Allow-Origin', process.env.ALLOWED_ORIGINS || '*');
+  res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
@@ -83,11 +61,13 @@ export default async function handler(req, res) {
   }
 
   try {
+    const client = await clientPromise;
+    const db = client.db(dbName);
+    const collection = db.collection('lives');
+
     // GET /api/lives - Get all live sessions
     if (req.method === 'GET' && !req.query.id) {
-      const lives = await connectAndQuery(async (db) => {
-        return await db.collection('lives').find({}).toArray();
-      });
+      const lives = await collection.find({}).toArray();
       return res.status(200).json(lives);
     }
 
@@ -98,10 +78,7 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: validation.error });
       }
 
-      const live = await connectAndQuery(async (db) => {
-        return await db.collection('lives').findOne({ id: req.query.id });
-      });
-
+      const live = await collection.findOne({ id: req.query.id });
       if (!live) {
         return res.status(404).json({ error: 'Live session not found' });
       }
@@ -115,12 +92,10 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: validation.error });
       }
 
-      await connectAndQuery(async (db) => {
-        return await db.collection('lives').insertOne({
-          ...req.body,
-          attendees: 0,
-          createdAt: new Date().toISOString(),
-        });
+      await collection.insertOne({
+        ...req.body,
+        attendees: 0,
+        createdAt: new Date().toISOString(),
       });
 
       return res.status(201).json({ id: req.body.id, ...req.body });
@@ -138,12 +113,10 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: liveValidation.error });
       }
 
-      const result = await connectAndQuery(async (db) => {
-        return await db.collection('lives').updateOne(
-          { id: req.query.id },
-          { $set: req.body }
-        );
-      });
+      const result = await collection.updateOne(
+        { id: req.query.id },
+        { $set: req.body }
+      );
 
       if (result.matchedCount === 0) {
         return res.status(404).json({ error: 'Live session not found' });
@@ -159,9 +132,7 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: validation.error });
       }
 
-      const result = await connectAndQuery(async (db) => {
-        return await db.collection('lives').deleteOne({ id: req.query.id });
-      });
+      const result = await collection.deleteOne({ id: req.query.id });
 
       if (result.deletedCount === 0) {
         return res.status(404).json({ error: 'Live session not found' });
@@ -172,7 +143,7 @@ export default async function handler(req, res) {
 
     return res.status(405).json({ error: 'Method not allowed' });
   } catch (error) {
-    console.error('Error:', error);
-    return res.status(500).json({ error: 'Server error' });
+    console.error('Lives API error:', error);
+    return res.status(500).json({ error: 'Server error', details: error.message });
   }
 }
