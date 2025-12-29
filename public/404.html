@@ -10,14 +10,17 @@
     />
     <title>EduFlow</title>
     <script>
-      // Redirect all 404s to the index.html
-      var path = window.location.pathname.replace(/\/$/, "");
-      if (path) {
-        window.location.replace(
-          path
-            .replace(/\/[^\/]*\.[^\/]*$/, "") // Remove file.ext
-            .replace(/\/$/, "") + "/?redirect=" + path.slice(1)
-        );
+      // Only redirect SPA routes, not static assets
+      var pathname = window.location.pathname;
+      
+      // Don't redirect if it's a static asset
+      if (/\.(js|css|json|png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf|eot)$/i.test(pathname)) {
+        // Let the static asset 404 happen naturally
+      } else {
+        // It's likely a SPA route, redirect to index.html
+        var baseUrl = '/fefef/';
+        var redirect = pathname.replace(baseUrl, '') + window.location.search;
+        window.location.replace(baseUrl + '?redirect=' + encodeURIComponent(redirect));
       }
     </script>
   </head>
