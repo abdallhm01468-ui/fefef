@@ -1,41 +1,5 @@
 import clientPromise from './_db.js';
 
-const dbName = process.env.DB_NAME || 'eduflow';
-
-// Validation functions
-function validateSummary(data) {
-  const { title, titleAr, description, fileUrl, subjectCode } = data;
-  
-  if (!title || !titleAr || !description || !fileUrl || !subjectCode) {
-    return { valid: false, error: 'Missing required fields' };
-  }
-  
-  if (typeof title !== 'string' || title.length > 200) {
-    return { valid: false, error: 'Invalid title' };
-  }
-  if (typeof titleAr !== 'string' || titleAr.length > 200) {
-    return { valid: false, error: 'Invalid Arabic title' };
-  }
-  if (typeof description !== 'string' || description.length > 1000) {
-    return { valid: false, error: 'Invalid description' };
-  }
-  if (typeof fileUrl !== 'string' || fileUrl.length > 500) {
-    return { valid: false, error: 'Invalid file URL' };
-  }
-  if (typeof subjectCode !== 'string' || subjectCode.length > 20) {
-    return { valid: false, error: 'Invalid subject code' };
-  }
-  
-  return { valid: true };
-}
-
-function validateId(id) {
-  if (!id || typeof id !== 'string' || id.length === 0) {
-    return { valid: false, error: 'Invalid ID' };
-  }
-  return { valid: true };
-}
-
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
@@ -47,59 +11,46 @@ export default async function handler(req, res) {
 
   try {
     const client = await clientPromise;
-    const db = client.db(dbName);
+    const db = client.db(process.env.DB_NAME || 'eduflow');
     const collection = db.collection('summaries');
 
-    // GET /api/summaries - Get all summaries
-    if (req.method === 'GET' && !req.query.id) {
+    // GET - Get all summaries
+    if (req.method === 'GET') {
       const summaries = await collection.find({}).toArray();
       return res.status(200).json(summaries);
     }
 
-    // GET /api/summaries?id=xxx - Get summary by ID
-    if (req.method === 'GET' && req.query.id) {
-      const validation = validateId(req.query.id);
-      if (!validation.valid) {
-        return res.status(400).json({ error: validation.error });
-      }
-
-      const summary = await collection.findOne({ id: req.query.id });
-      if (!summary) {
-        return res.status(404).json({ error: 'Summary not found' });
-      }
-      return res.status(200).json(summary);
-    }
-
-    // POST /api/summaries - Create summary
+    // POST - Create summary
     if (req.method === 'POST') {
-      const validation = validateSummary(req.body);
-      if (!validation.valid) {
-        return res.status(400).json({ error: validation.error });
+      const { id, title, titleAr, description, fileUrl, subjectCode } = req.body;
+      
+      if (!id || !title || !titleAr || !description || !fileUrl || !subjectCode) {
+        return res.status(400).json({ error: 'Missing required fields' });
       }
 
-      await collection.insertOne({
-        ...req.body,
+      const result = await collection.insertOne({
+        id,
+        title,
+        titleAr,
+        description,
+        fileUrl,
+        subjectCode,
         downloads: 0,
         uploadDate: new Date().toISOString(),
       });
 
-      return res.status(201).json({ id: req.body.id, ...req.body });
+      return res.status(201).json({ success: true, id });
     }
 
-    // PUT /api/summaries?id=xxx - Update summary
-    if (req.method === 'PUT' && req.query.id) {
-      const validation = validateId(req.query.id);
-      if (!validation.valid) {
-        return res.status(400).json({ error: validation.error });
-      }
-
-      const summaryValidation = validateSummary(req.body);
-      if (!summaryValidation.valid) {
-        return res.status(400).json({ error: summaryValidation.error });
+    // PUT - Update summary
+    if (req.method === 'PUT') {
+      const { id } = req.query;
+      if (!id) {
+        return res.status(400).json({ error: 'Missing ID' });
       }
 
       const result = await collection.updateOne(
-        { id: req.query.id },
+        { id },
         { $set: req.body }
       );
 
@@ -107,17 +58,17 @@ export default async function handler(req, res) {
         return res.status(404).json({ error: 'Summary not found' });
       }
 
-      return res.status(200).json({ id: req.query.id, ...req.body });
+      return res.status(200).json({ success: true });
     }
 
-    // DELETE /api/summaries?id=xxx - Delete summary
-    if (req.method === 'DELETE' && req.query.id) {
-      const validation = validateId(req.query.id);
-      if (!validation.valid) {
-        return res.status(400).json({ error: validation.error });
+    // DELETE - Delete summary
+    if (req.method === 'DELETE') {
+      const { id } = req.query;
+      if (!id) {
+        return res.status(400).json({ error: 'Missing ID' });
       }
 
-      const result = await collection.deleteOne({ id: req.query.id });
+      const result = await collection.deleteOne({ id });
 
       if (result.deletedCount === 0) {
         return res.status(404).json({ error: 'Summary not found' });
@@ -127,8 +78,8 @@ export default async function handler(req, res) {
     }
 
     return res.status(405).json({ error: 'Method not allowed' });
-  } catch (error) {
-    console.error('Summaries API error:', error);
-    return res.status(500).json({ error: 'Server error', details: error.message });
+  } catch (err) {
+    console.error('Summaries error:', err);
+    return res.status(500).json({ error: 'Database error', details: err.message });
   }
 }
