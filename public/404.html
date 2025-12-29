@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#000000" />
+    <meta
+      name="description"
+      content="EduFlow - Educational Platform"
+    />
+    <title>EduFlow</title>
+    <script>
+      // Redirect all 404s to the index.html
+      var path = window.location.pathname.replace(/\/$/, "");
+      if (path) {
+        window.location.replace(
+          path
+            .replace(/\/[^\/]*\.[^\/]*$/, "") // Remove file.ext
+            .replace(/\/$/, "") + "/?redirect=" + path.slice(1)
+        );
+      }
+    </script>
+  </head>
+  <body>
+    Redirecting...
+  </body>
+</html>
